@@ -1,0 +1,24 @@
+# Entorno virtual
+spark_env/
+venv/
+*.pyc
+__pycache__/
+
+# Datos sensibles
+data/raw/
+*.csv
+*.xlsx
+
+# Resultados locales
+results/experiments/*.json
+results/logs/*.log
+
+# IDE
+.vscode/
+.idea/
+*.swp
+
+# Spark
+spark-warehouse/
+metastore_db/
+*.log
