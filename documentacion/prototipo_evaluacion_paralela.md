@@ -11,7 +11,7 @@ header-includes:
   - \lstset{basicstyle=\ttfamily\small, breaklines=true, frame=single, numbers=left, numberstyle=\tiny}
 geometry: margin=2.5cm
 ---
-# Documento hito #4 (de 5) de mes 2
+# Documento hito #6 (de 6) de mes 2
 
 \begin{center}
 \begin{tikzpicture}[scale=0.72]
@@ -154,15 +154,22 @@ Esto produce cromosomas como `[1, 0, 1, 1, 0, 0, 1, 0, ...]` donde cada posició
 
 Se implementan dos variantes:
 
-- **`fitness_rapido`**: Usa la función Rastrigin invertida como pseudo-accuracy. No introduce retardo artificial. Sirve para validar correctitud pero el overhead de serialización de Spark puede enmascarar el beneficio del paralelismo.
+- **`fitness_rapido`**: Calcula un pseudo-accuracy **determinista** a partir de un hash del cromosoma. El hash se usa como semilla de `numpy.RandomState`, produciendo un valor en `[0.5, 1.0]` —rango realista para un clasificador mejor que el azar— de forma que el fitness nunca toma valores negativos. No introduce retardo artificial; sirve para validar correctitud.
 
-- **`fitness_costoso`**: Añade `time.sleep(sleep_ms)` para simular el coste real de entrenar un clasificador con 5-fold cross-validation. Con `sleep_ms=50` se simula un coste de 50ms por evaluación, representativo de Naive Bayes sobre WDBC. Este es el test clave para demostrar el speedup.
+- **`fitness_costoso`**: Añade `time.sleep(sleep_ms)` para simular el coste real de entrenar un clasificador con 5-fold cross-validation. Con `sleep_ms=50` se simula un coste de 50 ms por evaluación, representativo de Naive Bayes sobre WDBC. Este es el test clave para demostrar el speedup.
 
 Ambas funciones siguen la fórmula de fitness del diseño con $\alpha = 0.9$ y $\beta = 0.1$:
 
 ```python
-fitness = ALPHA * score - BETA * (genes_activos / D)
+seed    = hash(tuple(cromosoma)) % (2**32)
+rng     = np.random.RandomState(seed)
+accuracy = 0.5 + 0.5 * rng.random()          # en [0.5, 1.0]
+fitness  = ALPHA * accuracy - BETA * (genes_activos / D)
 ```
+
+El rango teórico resultante es $[0.35,\ 0.897]$, sin valores negativos.
+
+La función es **determinista**: el mismo cromosoma produce siempre el mismo fitness, lo que garantiza que la validación `seq == paralelo` sea válida independientemente del orden de evaluación en los Workers.
 
 El caso especial de cromosoma nulo ($|S| = 0$) retorna fitness $= 0$.
 
