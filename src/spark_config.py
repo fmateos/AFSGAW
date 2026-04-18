@@ -13,7 +13,7 @@ from pyspark.sql.types import StructType, StructField, StringType, IntegerType, 
 
 def crear_sesion_spark(
     app_name="TFM_SeleccionCaracteristicas",
-    master="local[*]",
+    master="local[8]",
     driver_memory="4g",
     executor_memory="4g",
     ui_port=4040,
@@ -54,7 +54,7 @@ def crear_sesion_spark(
         .config("spark.driver.memory", driver_memory) \
         .config("spark.executor.memory", executor_memory) \
         .config("spark.sql.shuffle.partitions", "4") \
-        .config("spark.default.parallelism", "4") \
+        .config("spark.default.parallelism", "8") \
         .config("spark.ui.enabled", "true") \
         .config("spark.ui.port", str(ui_port)) \
         .config("spark.driver.host", "localhost") \

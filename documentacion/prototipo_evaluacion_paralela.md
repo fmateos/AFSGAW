@@ -51,7 +51,7 @@ geometry: margin=2.5cm
 
 **TFM:** Selección Automática de Características en Algoritmos de Clasificación Mediante Algoritmos Genéticos y Métodos de Envoltorio con Apache Spark RDD
 
-**Notebook:** `notebooks/01_parallel_fitness_prototype.ipynb`
+**Notebook:** [`notebooks/01_parallel_fitness_prototype.ipynb`](https://github.com/fmateos/AFSGAW/blob/main/notebooks/01_parallel_fitness_prototype.ipynb)
 
 ---
 
@@ -60,9 +60,9 @@ geometry: margin=2.5cm
 Validar experimentalmente que la arquitectura de paralelización diseñada en el documento de arquitectura Spark RDD funciona correctamente antes de implementar el GA completo. En concreto, se verifica que:
 
 1. Una población de cromosomas puede distribuirse como RDD y evaluarse en paralelo con `rdd.map()`.
-2. El paralelismo produce un **speedup real** medible frente a la ejecución secuencial.
-3. Los resultados paralelos son **idénticos** a los secuenciales (correctitud).
-4. La ejecución es **observable** en la Spark Web UI (`http://localhost:4040`).
+2. El paralelismo produce un speedup real medible frente a la ejecución secuencial.
+3. Los resultados paralelos son idénticos a los secuenciales (correctitud).
+4. La ejecución es observable en la Spark Web UI (`http://localhost:4040`).
 5. El patrón `parallelize → map → collect` funciona dentro de un bucle generacional del GA.
 
 ## 2. Relación con la Arquitectura del Proyecto
@@ -154,7 +154,7 @@ Esto produce cromosomas como `[1, 0, 1, 1, 0, 0, 1, 0, ...]` donde cada posició
 
 Se implementan dos variantes:
 
-- **`fitness_rapido`**: Calcula un pseudo-accuracy **determinista** a partir de un hash del cromosoma. El hash se usa como semilla de `numpy.RandomState`, produciendo un valor en `[0.5, 1.0]` —rango realista para un clasificador mejor que el azar— de forma que el fitness nunca toma valores negativos. No introduce retardo artificial; sirve para validar correctitud.
+- **`fitness_rapido`**: Calcula un pseudo-accuracy determinista a partir de un hash del cromosoma. El hash se usa como semilla de `numpy.RandomState`, produciendo un valor en `[0.5, 1.0]` —rango realista para un clasificador mejor que el azar— de forma que el fitness nunca toma valores negativos. No introduce retardo artificial; sirve para validar correctitud.
 
 - **`fitness_costoso`**: Añade `time.sleep(sleep_ms)` para simular el coste real de entrenar un clasificador con 5-fold cross-validation. Con `sleep_ms=50` se simula un coste de 50 ms por evaluación, representativo de Naive Bayes sobre WDBC. Este es el test clave para demostrar el speedup.
 
@@ -169,7 +169,7 @@ fitness  = ALPHA * accuracy - BETA * (genes_activos / D)
 
 El rango teórico resultante es $[0.35,\ 0.897]$, sin valores negativos.
 
-La función es **determinista**: el mismo cromosoma produce siempre el mismo fitness, lo que garantiza que la validación `seq == paralelo` sea válida independientemente del orden de evaluación en los Workers.
+La función es determinista: el mismo cromosoma produce siempre el mismo fitness, lo que garantiza que la validación `seq == paralelo` sea válida independientemente del orden de evaluación en los Workers.
 
 El caso especial de cromosoma nulo ($|S| = 0$) retorna fitness $= 0$.
 
@@ -194,7 +194,7 @@ fitness_par = rdd_poblacion.map(lambda ind: fitness_costoso(ind, sleep_ms=50)).c
 
 Este es el patrón `parallelize → map → collect` descrito en la arquitectura. Según el documento de arquitectura, con `local[N]` se procesan $N$ individuos simultáneamente, completando la población en `ceil(P/N)` rondas.
 
-**Tiempo esperado** con 4 cores: $\sim 100 \times 50\text{ms} / 4 = 1.25\text{s}$ (speedup teórico $\approx 4\text{x}$).
+Tiempo esperado con 4 cores: $\sim 100 \times 50\text{ms} / 4 = 1.25\text{s}$ (speedup teórico $\approx 4\text{x}$).
 
 ### 3.5 Validación de correctitud
 

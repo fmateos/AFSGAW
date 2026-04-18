@@ -63,7 +63,7 @@ El notebook cubre tres áreas: la configuración de la `SparkSession` con los pa
 
 ## 1. Configuración del entorno
 
-La sesión de Spark se construye mediante la API `SparkSession.builder` de **PySpark** ([pyspark.sql.SparkSession](https://spark.apache.org/docs/3.5.0/api/python/reference/pyspark.sql/api/pyspark.sql.SparkSession.html)), que expone un patrón fluent para encadenar opciones de configuración antes de llamar a `.getOrCreate()`:
+La sesión de Spark se construye mediante la API `SparkSession.builder` de PySpark ([pyspark.sql.SparkSession](https://spark.apache.org/docs/3.5.0/api/python/reference/pyspark.sql/api/pyspark.sql.SparkSession.html)), que expone un patrón fluent para encadenar opciones de configuración antes de llamar a `.getOrCreate()`:
 
 ```python
 from pyspark.sql import SparkSession
@@ -83,7 +83,7 @@ spark = SparkSession.builder \
     .getOrCreate()
 ```
 
-La localización de la instalación de Spark en el sistema se delega en **findspark** ([findspark](https://pypi.org/project/findspark/)), que llama a `findspark.init()` para añadir el directorio de PySpark al `sys.path` antes de cualquier importación, evitando la necesidad de configurar manualmente `SPARK_HOME` o `PYTHONPATH`.
+La localización de la instalación de Spark en el sistema se delega en findspark ([findspark](https://pypi.org/project/findspark/)), que llama a `findspark.init()` para añadir el directorio de PySpark al `sys.path` antes de cualquier importación, evitando la necesidad de configurar manualmente `SPARK_HOME` o `PYTHONPATH`.
 
 El nivel de log se ajusta a través de `spark.sparkContext.setLogLevel("WARN")` para suprimir mensajes informativos durante la ejecución del notebook y reducir el ruido en la salida.
 
@@ -102,7 +102,7 @@ Los parámetros resultantes de la sesión son:
 | Arrow para Pandas | habilitado |
 | Spark Web UI | http://localhost:4040 |
 
-El modo `local[*]` instruye a Spark para que use todos los núcleos de la máquina como workers dentro del mismo proceso JVM, proporcionando paralelismo real sin necesidad de un clúster externo. Con 4 cores disponibles, Spark crea 4 particiones por defecto para distribuir el trabajo. La opción `spark.sql.execution.arrow.pyspark.enabled` activa la serialización mediante **Apache Arrow** ([pyarrow](https://arrow.apache.org/docs/python/)) en las conversiones entre DataFrames de Spark y Pandas, reduciendo significativamente el coste de `.toPandas()`.
+El modo `local[*]` instruye a Spark para que use todos los núcleos de la máquina como workers dentro del mismo proceso JVM, proporcionando paralelismo real sin necesidad de un clúster externo. Con 4 cores disponibles, Spark crea 4 particiones por defecto para distribuir el trabajo. La opción `spark.sql.execution.arrow.pyspark.enabled` activa la serialización mediante Apache Arrow ([pyarrow](https://arrow.apache.org/docs/python/)) en las conversiones entre DataFrames de Spark y Pandas, reduciendo significativamente el coste de `.toPandas()`.
 
 ---
 
@@ -144,7 +144,7 @@ Confirma que el motor SQL de Spark funciona correctamente sobre DataFrames regis
 
 ### Test 4 — Conversión a Pandas y visualización
 
-Se ejecuta `.toPandas()` (acelerado por Arrow) para recolectar los resultados en el driver y generar visualizaciones con **matplotlib** y **seaborn**. Este paso valida la interoperabilidad entre el DataFrame de PySpark y el ecosistema científico de Python: los datos procesados en el clúster se transfieren al proceso driver como un `pandas.DataFrame` estándar, disponible para cualquier librería de análisis o visualización.
+Se ejecuta `.toPandas()` (acelerado por Arrow) para recolectar los resultados en el driver y generar visualizaciones con matplotlib y seaborn. Este paso valida la interoperabilidad entre el DataFrame de PySpark y el ecosistema científico de Python: los datos procesados en el clúster se transfieren al proceso driver como un `pandas.DataFrame` estándar, disponible para cualquier librería de análisis o visualización.
 
 ---
 
@@ -154,23 +154,23 @@ Se ejecuta `.toPandas()` (acelerado por Arrow) para recolectar los resultados en
 
 ![Spark Jobs](../results/00_spark_config_jobs.png)
 
-La vista **Jobs** muestra los **9 jobs completados** durante la sesión de validación. Cada test del notebook genera uno o varios jobs:
+La vista Jobs muestra los 9 jobs completados durante la sesión de validación. Cada test del notebook genera uno o varios jobs:
 
 - Los jobs asociados a `parallelize` + `map` + `sum` (Test 1) producen stages con múltiples tasks ejecutadas en paralelo.
 - Los jobs de DataFrame y SQL (Tests 2–4) generan stages de menor duración al operar sobre datos pequeños.
-- La columna **Stages** confirma la correcta división en stages (entre 1 y 12 stages por job según la complejidad).
-- La columna **Tasks** refleja el paralelismo efectivo: los jobs sobre el RDD de 1M elementos distribuyen las tareas entre los 4 workers disponibles.
+- La columna Stages confirma la correcta división en stages (entre 1 y 12 stages por job según la complejidad).
+- La columna Tasks refleja el paralelismo efectivo: los jobs sobre el RDD de 1M elementos distribuyen las tareas entre los 4 workers disponibles.
 
 ### Stages completados y skipped
 
 ![Spark Stages](../results/00_spark_config_stages.png)
 
-La vista **Stages** desglosa la ejecución interna de cada job:
+La vista Stages desglosa la ejecución interna de cada job:
 
 - **9 stages completados** con métricas de duración, input/output y shuffle read/write.
 - **5 stages skipped** (marcados en gris): Spark detectó que los datos ya estaban cacheados o que el resultado podía reutilizarse, evitando recomputación innecesaria — indicador de que la optimización del planificador (Catalyst) está activa.
-- Los stages del RDD grande muestran **shuffle write** de ~332 B, resultado del `sum` agregado entre particiones.
-- Las duraciones oscilan entre **<1 ms** (stages triviales) y **~55 ms** (stages con transformaciones sobre 1M elementos), tiempos coherentes con una ejecución local en modo `local[*]`.
+- Los stages del RDD grande muestran shuffle write*de ~332 B, resultado del `sum` agregado entre particiones.
+- Las duraciones oscilan entre <1 ms (stages triviales) y ~55 ms (stages con transformaciones sobre 1M elementos), tiempos coherentes con una ejecución local en modo `local[*]`.
 
 ---
 
@@ -178,7 +178,7 @@ La vista **Stages** desglosa la ejecución interna de cada job:
 
 La sesión de Spark queda validada con los siguientes criterios:
 
-- **Spark 3.5.0** se inicializa correctamente en modo `local[*]` con 4 workers efectivos.
+- Spark 3.5.0 se inicializa correctamente en modo `local[*]` con 4 workers efectivos.
 - Los RDDs se crean, transforman y materializan sin errores, con distribución real del trabajo entre particiones.
 - DataFrames, Spark SQL y la conversión a Pandas funcionan con coherencia de tipos y resultados correctos.
 - La Web UI refleja la ejecución completa: 9 jobs, stages con tasks paralelas, optimización por skip de stages ya cacheados y métricas de shuffle.
