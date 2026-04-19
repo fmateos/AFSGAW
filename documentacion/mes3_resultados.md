@@ -80,8 +80,8 @@ Semilla global & 42 \\
 
 **Nota sobre el paralelismo efectivo.** La configuración se fija explícitamente en el helper \texttt{src/spark\_config.py} con \texttt{spark.default.parallelism = 8} y \texttt{spark.sql.shuffle.partitions = 8}, valor elegido por dos razones:
 
-1. **Reproducibilidad.} Fijar el paralelismo a un valor constante evita que \texttt{local[*]} produzca resultados distintos según el hardware donde se ejecute el código, lo que sería un problema para la defensa del TFM y para comparar experimentos entre datasets (WDBC vs.\ Arrhythmia vs.\ Gisette del mes 4).
-2. **Coherencia con el documento de arquitectura} (\textbf{[D2]}), que describe el sistema como \texttt{local[8]}.
+1. \textbf{Reproducibilidad.} Fijar el paralelismo a un valor constante evita que \texttt{local[*]} produzca resultados distintos según el hardware donde se ejecute el código, lo que sería un problema para la defensa del TFM y para comparar experimentos entre datasets (WDBC vs.\ Arrhythmia vs.\ Gisette del mes 4).
+2. \textbf{Coherencia con el documento de arquitectura} (\textbf{[D2]}), que describe el sistema como \texttt{local[8]}.
 
 En consecuencia, el \textit{speed-up} ideal está acotado por $S_\text{ideal} = 8$ en todos los experimentos del Hito 5.
 
@@ -117,7 +117,7 @@ La primera validación realizada en `02_gnb_fitness_evaluation.ipynb` compara, p
 2. `StratifiedKFold` con la misma semilla produce los mismos folds en Driver y Workers.
 3. La implementación cumple con la especificación de la fórmula de fitness de **[D1]** §2 tanto en Python puro como en Spark.
 
-Este resultado es equivalente al \textit{smoke test} del prototipo del mes 2 pero con la fitness real del sistema final, eliminando la incertidumbre introducida por el paso de `time.sleep` al clasificador.
+Este resultado es equivalente al \textit{dummy test} del prototipo del mes 2 pero con la fitness real del sistema final, eliminando la incertidumbre introducida por el paso de `time.sleep` al clasificador.
 
 ### 1.2 Distribución de la población inicial
 
