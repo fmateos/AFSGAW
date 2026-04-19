@@ -6,7 +6,6 @@ __pycache__/
 
 # Datos sensibles
 data/raw/
-*.csv
 *.xlsx
 
 # Resultados locales
