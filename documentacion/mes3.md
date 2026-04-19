@@ -9,6 +9,8 @@ header-includes:
   - \usetikzlibrary{decorations.pathreplacing,positioning,arrows.meta}
   - \usepackage{listings}
   - \lstset{basicstyle=\ttfamily\small, breaklines=true, frame=single, numbers=left, numberstyle=\tiny}
+  - \usepackage{graphicx}
+  - \usepackage{float}
 geometry: margin=2.5cm
 ---
 # Documento de mes 3 — Implementación
@@ -63,9 +65,9 @@ A lo largo del texto se cita un conjunto de documentos internos del proyecto. La
 \hline
 \textbf{Abrev.} & \textbf{Fichero} & \textbf{Descripción} \\
 \hline
-\textbf{[D1]} & \texttt{diseño\_GA.md} & Diseño del GA: \newline \hspace*{2em} -fitness §2 \newline \hspace*{2em} -operadores §3 \newline \hspace*{2em} -clasificador §5 \newline \hspace*{2em} -parámetros §6 \\
-\textbf{[D2]} & \texttt{arquitectura\_spark\_rdd\_ga.md} & Arquitectura Spark RDD: \newline \hspace*{2em} -Driver/Workers §2.1 \newline \hspace*{2em} -\texttt{parallelize→map→collect} §2.3 \newline \hspace*{2em} -broadcast §2.5 \\
-\textbf{[D3]} & \texttt{prototipo\_evaluacion\_paralela.md} & Prototipo mes 2: \newline \hspace*{2em} -fitness simulado con \texttt{time.sleep} §3.2 \\
+\textbf{[D1]} & \texttt{diseño\_GA.md} & Diseño del GA: \newline \hspace*{2em} - fitness §2 \newline \hspace*{2em} - operadores §3 \newline \hspace*{2em} - clasificador §5 \newline \hspace*{2em} - parámetros §6 \\
+\textbf{[D2]} & \texttt{arquitectura\_spark\_rdd\_ga.md} & Arquitectura Spark RDD: \newline \hspace*{2em} - Driver/Workers §2.1 \newline \hspace*{2em} - \texttt{parallelize→map→collect} §2.3 \newline \hspace*{2em} - broadcast §2.5 \\
+\textbf{[D3]} & \texttt{prototipo\_evaluacion\_paralela.md} & Prototipo mes 2: \newline \hspace*{2em} - fitness simulado con \texttt{time.sleep} §3.2 \\
 \hline
 \end{tabular}
 }
@@ -246,6 +248,203 @@ y_bc.destroy()
 ```
 
 Este patrón es coherente con la recomendación del documento de arquitectura (**[D2]** §2.5): *"El clasificador tiene acceso a los datos de entrenamiento, que se difunden a los Workers mediante broadcast variables para evitar transferencias repetidas en cada generación."*
+
+
+\begin{figure}[H]
+\centering
+\begin{tikzpicture}[
+    % --- Estilos de nodos ---
+    driver/.style={
+        rectangle, rounded corners=4pt,
+        draw=black!70, fill=blue!15,
+        minimum width=2.0cm, minimum height=0.7cm,
+        font=\small\bfseries
+    },
+    executor/.style={
+        rectangle, rounded corners=4pt,
+        draw=black!70, fill=orange!20,
+        minimum width=2.2cm, minimum height=0.7cm,
+        font=\small\bfseries
+    },
+    task/.style={
+        rectangle, rounded corners=2pt,
+        draw=black!50, fill=green!15,
+        minimum width=1.8cm, minimum height=0.55cm,
+        font=\scriptsize
+    },
+    data/.style={
+        rectangle, rounded corners=2pt,
+        draw=red!60, fill=red!10,
+        minimum width=1.6cm, minimum height=0.45cm,
+        font=\scriptsize\itshape
+    },
+    bc/.style={
+        rectangle, rounded corners=2pt,
+        draw=blue!60, fill=blue!10,
+        minimum width=1.6cm, minimum height=0.45cm,
+        font=\scriptsize\itshape
+    },
+    label_box/.style={
+        rectangle, rounded corners=3pt,
+        draw=gray!60, fill=gray!8,
+        minimum width=5.5cm, minimum height=0.5cm,
+        font=\footnotesize
+    },
+    annot/.style={font=\scriptsize, text=gray!80},
+    warn/.style={font=\scriptsize\bfseries, text=red!70},
+    good/.style={font=\scriptsize\bfseries, text=green!50!black},
+    % --- Flechas ---
+    arr/.style={-{Latex[length=2.5mm]}, thick},
+    arr_red/.style={-{Latex[length=2.5mm]}, thick, red!70},
+    arr_blue/.style={-{Latex[length=2.5mm]}, thick, blue!60},
+]
+
+% ================================================================
+% COLUMNA IZQUIERDA: SIN BROADCAST
+% ================================================================
+
+% Título columna
+\node[font=\normalsize\bfseries, text=red!70] at (2.2, 0.3)
+    {Sin \textit{broadcast} (closure)};
+
+% Driver
+\node[driver] (drv_l) at (2.2, -0.5) {Driver};
+
+% Executor 1
+\node[executor] (ex1_l) at (0.6, -2.2) {Executor 1};
+% Executor 2
+\node[executor] (ex2_l) at (3.8, -2.2) {Executor 2};
+
+% Tasks + datos embebidos Executor 1
+\node[task]  (t1_l) at (0.6, -3.3) {Task 1};
+\node[data]  (d1_l) at (0.6, -3.95) {X + y};
+
+\node[task]  (t2_l) at (0.6, -4.75) {Task 2};
+\node[data]  (d2_l) at (0.6, -5.4) {X + y};
+
+% Tasks + datos embebidos Executor 2
+\node[task]  (t3_l) at (3.8, -3.3) {Task 3};
+\node[data]  (d3_l) at (3.8, -3.95) {X + y};
+
+\node[task]  (t4_l) at (3.8, -4.75) {Task 4};
+\node[data]  (d4_l) at (3.8, -5.4) {X + y};
+
+% Flechas Driver → Executor
+\draw[arr_red] (drv_l.south west) -- (ex1_l.north);
+\draw[arr_red] (drv_l.south east) -- (ex2_l.north);
+
+
+% Anotación: X viaja con cada tarea
+\node[warn] at (2.2, -2.8)
+    {\(\times 4\) copias de X};
+
+% Cajas de problema
+\node[draw=red!50, fill=red!5, rounded corners=3pt,
+      font=\scriptsize, text width=4.6cm, align=center,
+      inner sep=4pt] at (2.2, -6.7)
+{
+    \textcolor{red!70}{\textbf{Problema 1:}} Tráfico de red\\
+    X se serializa con \textit{cada task}\\[3pt]
+    \textcolor{red!70}{\textbf{Problema 2:}} Re-serialización\\
+    En cada generación del GA,\\
+    X se vuelve a empaquetar
+};
+
+% ================================================================
+% SEPARADOR VERTICAL
+% ================================================================
+\draw[dashed, gray!50, thick] (5.4, 0.6) -- (5.4, -7.2);
+
+% ================================================================
+% COLUMNA DERECHA: CON BROADCAST
+% ================================================================
+
+% Título columna
+\node[font=\normalsize\bfseries, text=green!50!black] at (8.8, 0.3)
+    {Con \textit{broadcast}};
+
+% Driver
+\node[driver] (drv_r) at (8.8, -0.5) {Driver};
+
+% Broadcast variable (se envía una vez)
+\node[bc] (bc1) at (7.0, -1.7) {X\_bc};
+\node[bc] (bc2) at (10.6, -1.7) {X\_bc};
+
+% Executor 1
+\node[executor] (ex1_r) at (7.0, -2.8) {Executor 1};
+% Executor 2
+\node[executor] (ex2_r) at (10.6, -2.8) {Executor 2};
+
+% Tasks (sin datos embebidos)
+\node[task] (t1_r) at (7.0,  -3.8) {Task 1 \ \small(crom.)};
+\node[task] (t2_r) at (7.0,  -4.6) {Task 2 \ \small(crom.)};
+\node[task] (t3_r) at (10.6, -3.8) {Task 3 \ \small(crom.)};
+\node[task] (t4_r) at (10.6, -4.6) {Task 4 \ \small(crom.)};
+
+% Flechas Driver → broadcast
+\draw[arr_blue, dashed] (drv_r.south west) -- (bc1.north)
+    node[midway, left, annot] {\textit{una vez}};
+\draw[arr_blue, dashed] (drv_r.south east) -- (bc2.north)
+    node[midway, right, annot] {\textit{una vez}};
+
+% Flechas broadcast → executor
+\draw[arr_blue] (bc1.south) -- (ex1_r.north);
+\draw[arr_blue] (bc2.south) -- (ex2_r.north);
+
+% Flechas executor → tasks
+
+% Tasks leen X_bc local (flechas punteadas hacia arriba desde tasks a bc)
+\draw[-{Latex[length=2mm]}, dotted, blue!50]
+    (t1_r.north west) to[bend left=30] (bc1.south west);
+\draw[-{Latex[length=2mm]}, dotted, blue!50]
+    (t2_r.north west) to[bend left=40] (bc1.south);
+\draw[-{Latex[length=2mm]}, dotted, blue!50]
+    (t3_r.north east) to[bend right=30] (bc2.south east);
+\draw[-{Latex[length=2mm]}, dotted, blue!50]
+    (t4_r.north east) to[bend right=40] (bc2.south);
+
+% Anotación: solo el cromosoma viaja
+\node[good] at (8.8, -3.35)
+    {\(\times 1\) copia de X por executor};
+
+% Cajas de ventaja
+\node[draw=green!50!black, fill=green!5, rounded corners=3pt,
+      font=\scriptsize, text width=4.6cm, align=center,
+      inner sep=4pt] at (8.8, -6.6)
+{
+    \textcolor{green!50!black}{\textbf{Ventaja 1:}} Tráfico de red\\
+    X se envía \textbf{una vez por executor}\\
+    \textit{(relevante en cluster real)}\\[3pt]
+    \textcolor{green!50!black}{\textbf{Ventaja 2:}} Re-serialización\\
+    X\_bc persiste entre generaciones\\
+    \textit{\textbf{(ventaja principal en local[8])}}
+};
+
+% ================================================================
+% NOTA AL PIE
+% ================================================================
+\node[draw=gray!40, fill=yellow!8, rounded corners=3pt,
+      font=\scriptsize, text width=9.8cm, align=justify,
+      inner sep=5pt] at (5.4, -8.5)
+{
+    \textbf{Nota (entorno local[8]):} Con un único executor en la misma máquina,
+    la \textbf{Ventaja~1} (tráfico de red) es prácticamente nula.
+    La \textbf{Ventaja~2} (evitar re-serialización de X en cada generación) es
+    la ganancia real: con $G_{\max}=50$ generaciones y 8 particiones,
+    se evitan $50 \times 8 = 400$ re-serializaciones del dataset.
+    El patrón es correcto y crítico para los datasets futuros
+    (Gisette: $\sim$270\,MB).
+};
+
+\end{tikzpicture}
+
+\caption{Comparación entre evaluación \textit{sin broadcast} (izquierda) y \textit{con broadcast}
+(derecha) en Spark RDD. Sin broadcast, el dataset $X$ se serializa con cada tarea;
+con broadcast, se distribuye \textbf{una única vez por executor} y persiste entre
+generaciones del GA. En el entorno \texttt{local[8]} de este trabajo la ventaja
+principal es la eliminación de re-serializaciones entre generaciones (Ventaja~2).}
+\label{fig:broadcast_comparison}
+\end{figure}
 
 ---
 
@@ -456,7 +655,7 @@ Los resultados numéricos se exportan a CSV para su uso posterior en la fase de 
 
 ---
 
-## 5. Hitos 6 y 7: Primera Versión Completa del GA y Documentación
+## 5. Hitos 6 y 7: Primera Versión Completa del GA
 
 ### 5.1 Objetivo (Hito 6)
 
