@@ -1,0 +1,16 @@
+parametro,valor
+P,50
+G_max,50
+D,30
+p_cross,0.8
+p_mut,0.2
+p_mut_bit,0.03333333333333333
+k_tourn,5
+elite_size,2
+p_init,0.5
+eps_stop,0.001
+N_stop,10
+alpha,0.9
+beta,0.1
+cv_folds,5
+seed,42
