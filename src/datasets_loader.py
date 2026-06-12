@@ -15,8 +15,8 @@ Decisiones de preprocesado (documentadas para el TFM):
     ausentes como NaN. GaussianNB no admite NaN, asi que se imputa por la
     MEDIA de cada columna (SimpleImputer). Es la opcion mas conservadora y
     no introduce hiperparametros. La columna 'J' de Arrhythmia (~83% de
-    faltantes) queda practicamente constante tras imputar; el GA puede
-    descartarla via la penalizacion de parsimonia.
+    faltantes) queda practicamente constante tras imputar; el GA debería
+    descartarla a través de la penalizacion de parsimonia.
 
   * Codificacion de la clase (Arrhythmia): el target es multiclase (16
     clases). Se mantiene tal cual (entero) porque GNB es multiclase de
