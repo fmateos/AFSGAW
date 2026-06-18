@@ -1,0 +1,31 @@
+caracteristica,frecuencia_seleccion
+mean radius,0.1
+mean texture,0.7
+mean perimeter,0.0
+mean area,0.4
+mean smoothness,0.3
+mean compactness,0.0
+mean concavity,0.0
+mean concave points,0.0
+mean symmetry,0.2
+mean fractal dimension,0.0
+radius error,0.0
+texture error,0.0
+perimeter error,0.0
+area error,0.0
+smoothness error,0.0
+compactness error,0.0
+concavity error,0.3
+concave points error,0.0
+symmetry error,0.0
+fractal dimension error,0.0
+worst radius,0.4
+worst texture,0.9
+worst perimeter,0.1
+worst area,0.8
+worst smoothness,0.1
+worst compactness,0.2
+worst concavity,0.0
+worst concave points,1.0
+worst symmetry,0.2
+worst fractal dimension,0.0

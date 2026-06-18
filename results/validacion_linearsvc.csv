@@ -1,0 +1,4 @@
+dataset,D,n_caracteristicas_S,reduccion_pct,acc_gnb_test,acc_linearsvc_test,mejora_svc_vs_gnb
+wdbc,30,6,80.0,0.9474,0.9649,+0.0175
+arrhythmia,279,110,60.6,0.5662,0.6250,+0.0588
+gisette,5000,483,90.3,0.9210,0.9390,+0.0180
