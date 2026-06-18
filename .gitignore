@@ -17,6 +17,11 @@ results/logs/*.log
 .idea/
 *.swp
 
+# Tests (solo en local, no se suben a GitHub)
+tests/
+pytest.ini
+.pytest_cache/
+
 # Spark
 spark-warehouse/
 metastore_db/
