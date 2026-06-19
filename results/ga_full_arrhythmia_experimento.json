@@ -1,5 +1,5 @@
 {
-  "fecha": "2026-06-13T12:10:11",
+  "fecha": "2026-06-19T09:08:16",
   "notebook": "05_ga_full_arrhythmia.ipynb",
   "hito": "Hito 6 + Hito 7 (extension a Arrhythmia)",
   "dataset": {
@@ -31,7 +31,7 @@
     "ui_port": 4040,
     "default_parallelism": 8,
     "spark_version": "3.5.0",
-    "app_id": "local-1781348999894"
+    "app_id": "local-1781856482979"
   },
   "ga_params": {
     "P": 100,
@@ -336,9 +336,9 @@
       0,
       0
     ],
-    "tiempo_total_s": 11.106,
-    "tiempo_eval_total_s": 10.965,
-    "tiempo_ops_total_s": 0.081,
-    "tiempo_medio_gen_s": 0.111
+    "tiempo_total_s": 11.541,
+    "tiempo_eval_total_s": 11.41,
+    "tiempo_ops_total_s": 0.074,
+    "tiempo_medio_gen_s": 0.115
   }
 }
