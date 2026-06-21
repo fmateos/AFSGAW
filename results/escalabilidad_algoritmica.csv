@@ -1,0 +1,4 @@
+dataset,D,gen,n_sel,reduccion_pct,acc_gnb_test,acc_svc_test,jaccard,kuncheva,t_total_s,t_gen_s
+wdbc,30,24,6,80.0,0.9474,0.9649,0.4265,0.6524,1.954,0.081
+arrhythmia,279,100,110,60.6,0.5662,0.625,0.2975,0.1434,9.596,0.096
+gisette,5000,58,483,90.3,0.921,0.939,0.061,0.0108,121.241,2.09
