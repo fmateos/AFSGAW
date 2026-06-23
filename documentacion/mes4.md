@@ -457,13 +457,15 @@ Gisette & 483/5000 & 90.3\% & 0.9210 & 0.9390 & +0.0180 \\
 
 ## 6. Hito 12: Análisis de Escalabilidad Paralela
 
-### 6.1 Protocolo de medición
+La escalabilidad de la evaluación paralela del fitness se estudia desde dos perspectivas complementarias de la teoría de la computación paralela: (i) **escalado fuerte** (\textit{strong scaling}), donde el tamaño del problema permanece constante y se incrementa el número de unidades de cómputo —marco de la ley de Amdahl (Amdahl, 1967)—; y (ii) **escalado débil y amortización del overhead** (\textit{weak scaling}), donde los recursos paralelos permanecen fijos y se incrementa el tamaño del problema —marco de la ley de Gustafson (Gustafson, 1988)—. La primera medida (§6.1–6.3) varía el número de particiones con población fija; la segunda (§6.4–6.5) varía el tamaño de población con particiones fijas. Ambas miden el tiempo de una evaluación completa de la población como mediana de $N_{\text{rep}}=3$ repeticiones, robusta ante los \textit{outliers} de la recolección de basura (GC) de la JVM.
 
-Se mide el speed-up de la evaluación paralela del fitness con Spark RDD frente a la evaluación en serie (Python puro), **sin ejecutar el ciclo evolutivo completo**. Se usa una población fija de $P$ cromosomas generados con `np.random.seed(42)` y se varía el número de particiones de 1 a 8. Cada configuración se repite 3 veces y se reporta la mediana (robustez ante outliers de GC de la JVM). Los datos se exportan en `*_speedup.csv` por dataset.
+### 6.1 Protocolo: speed-up por número de particiones (escalado fuerte)
+
+Se mide el speed-up de la evaluación paralela del fitness con Spark RDD frente a la evaluación en serie (Python puro), **sin ejecutar el ciclo evolutivo completo**. Se usa una población fija de $P$ cromosomas generados con `np.random.seed(42)` —el $P$ propio de cada dataset— y se varía el número de particiones de 1 a 8. Cada configuración se repite 3 veces y se reporta la mediana. Los datos se exportan en `*_speedup.csv` por dataset.
 
 $$\text{Speed-up}(n) = \frac{t_{\text{serie}}}{t_{\text{Spark}}(n)} \qquad \text{Eficiencia}(n) = \frac{\text{Speed-up}(n)}{n}$$
 
-### 6.2 Resultados
+### 6.2 Resultados: speed-up por número de particiones
 
 \begin{center}
 {\footnotesize
@@ -510,11 +512,58 @@ La Figura~\ref{fig:speedup} muestra las curvas de speed-up y eficiencia. **WDBC:
 
 **Gisette: anomalía en 8 particiones.** El speed-up cae de $1.43\times$ (4 particiones) a $1.22\times$ (8 particiones), invirtiendo la tendencia esperada. La causa es el tamaño de los cromosomas: con $D=5000$ y representación Python de enteros, cada cromosoma ocupa ~40 KB; una partición de $P/8 \approx 13$ cromosomas supera la recomendación de Spark de 1 MB por tarea (se registra aviso: \textit{"Stage X contains a task of very large size (1121 KiB)"}). El overhead de serialización de las tareas a 8 particiones supera el beneficio del paralelismo adicional. La solución implementada en `run_ga` —compactar cromosomas a `int8` antes de paralelizar— reduce el tamaño a ~5 KB/cromosoma, pero el umbral de 1 MB/tarea se sigue superando con particiones pequeñas y cromosomas grandes.
 
-### 6.4 Interpretación global
+### 6.4 Protocolo y resultados: speed-up por tamaño de población (escalado débil)
+
+Complementando el análisis anterior, se fija el número de particiones al número de cores disponibles ($n = N_{\text{cores}} = 8$, el grano de paralelismo del entorno `local[*]`) y se varía el tamaño de población $P \in \{50, 100, 200, 500\}$. Para cada $P$ se mide el tiempo de una evaluación completa de la población en serie ($t_{\text{serie}}$) y en paralelo ($t_{\text{Spark}}$), repitiendo $N_{\text{rep}}=3$ veces y reportando la mediana. Mientras §6.1–6.3 hacen crecer los recursos sobre una carga constante, aquí la carga crece sobre recursos constantes, exponiendo cómo se amortiza el coste fijo de Spark. Los datos se exportan en `*_speedup_poblacion.csv`.
+
+\begin{center}
+{\footnotesize
+\begin{tabular}{|p{2.8cm}|c|c|c|c|}
+\hline
+\textbf{Dataset} & \boldmath$P=50$ & \boldmath$P=100$ & \boldmath$P=200$ & \boldmath$P=500$ \\
+\hline
+WDBC ($D=30$)        & 1.71$\times$ & 2.53$\times$ & 3.30$\times$ & \textbf{4.10}$\times$ \\
+Arrhythmia ($D=279$) & 2.11$\times$ & 2.79$\times$ & 3.58$\times$ & \textbf{4.03}$\times$ \\
+Gisette ($D=5000$)   & 0.92$\times$ & \textbf{1.83}$\times$ & 1.56$\times$ & 1.61$\times$ \\
+\hline
+\end{tabular}
+}
+\end{center}
+
+\begin{center}
+{\footnotesize
+\textit{Speed-up vs.\ serie con $n=8$ particiones fijas. Eficiencia ($=$ speed-up$/8$): WDBC $0.21\to0.51$, Arrhythmia $0.26\to0.50$, Gisette $0.11$–$0.23$ a lo largo del rango de $P$.}
+}
+\end{center}
+
+(Fuente: `results/wdbc_speedup_poblacion.csv`, `results/arrhythmia_speedup_poblacion.csv`, `results/gisette_speedup_poblacion.csv`)
+
+\begin{figure}[H]
+\centering
+\includegraphics[width=\textwidth]{../results/speedup_poblacion_comparativo.png}
+\caption{Escalado por tamaño de población con $n=8$ particiones fijas. \textit{Izquierda:} speed-up frente a la serie en función de $P$; la línea discontinua marca el umbral de ganancia nula ($1\times$). WDBC (azul) y Arrhythmia (verde) crecen monótonamente hacia el límite $n=8$ a medida que el overhead fijo se amortiza; Gisette (rojo) parte por debajo de $1\times$ ($P=50$, la versión paralela es más lenta que la serie) y se estanca en torno a $1.6\times$. \textit{Derecha:} tiempos de evaluación serie (línea discontinua) y Spark (línea continua) en escala logarítmica; los tiempos serie crecen linealmente con $P$ mientras que los de Spark crecen más despacio en WDBC/Arrhythmia (de ahí el speed-up creciente) pero casi en paralelo en Gisette (sin amortización).}
+\label{fig:speedup_poblacion}
+\end{figure}
+
+### 6.5 Análisis: amortización del overhead
+
+El tiempo de la evaluación paralela admite un modelo aditivo sencillo:
+$$t_{\text{Spark}}(P) \approx T_{o} + \frac{P\,\tau}{n}, \qquad t_{\text{serie}}(P) = P\,\tau,$$
+donde $\tau$ es el coste medio por evaluación individual y $T_o$ el overhead fijo de Spark por ronda (planificación de tareas, serialización, \textit{broadcast} de los datos y recolección de resultados). El speed-up resultante es
+$$S(P) = \frac{P\tau}{T_o + P\tau/n} = \frac{n}{1 + \dfrac{n\,T_o}{P\,\tau}} \xrightarrow[P\to\infty]{} n.$$
+El término $n T_o / (P\tau)$ es el overhead relativo, que decrece al aumentar $P$: a mayor carga útil por ronda, menor peso proporcional del coste fijo. Esta es la lógica del escalado débil de Gustafson (1988), dual de la ley de Amdahl: mientras Amdahl acota el speed-up con problema fijo, Gustafson muestra que el speed-up útil crece con el tamaño del problema cuando este satura los recursos disponibles.
+
+**WDBC y Arrhythmia confirman el modelo de amortización** (Figura~\ref{fig:speedup_poblacion}). El speed-up crece monótonamente con $P$: de $1.71\times$ ($P=50$) a $4.10\times$ ($P=500$) en WDBC, y de $2.11\times$ a $4.03\times$ en Arrhythmia. El coste por individuo es estable —verificable como $t_{\text{serie}}/P \approx 2.0$ ms en WDBC y $2.7$ ms en Arrhythmia, constante en todo el rango—, de modo que el crecimiento del speed-up se explica íntegramente por la dilución del overhead fijo $T_o$ sobre una carga creciente. Ambos datasets se aproximan asintóticamente al límite $n=8$ sin alcanzarlo en $P=500$, coherente con un $T_o$ no despreciable y con un coste de planificación que crece levemente con el número de tareas.
+
+**Gisette está limitado por comunicación, no por amortización.** Su speed-up no crece monótonamente: parte de $0.92\times$ en $P=50$ —la versión paralela es \textit{más lenta} que la serie—, salta a $1.83\times$ en $P=100$ y se estanca en torno a $1.6\times$ para $P \geq 200$, sin tendencia ascendente. Aunque el coste por individuo es elevado ($\tau \approx 44$ ms), el overhead no es constante: con $D=5000$ cada cromosoma compactado a `int8` ocupa $\sim$5 KB, y el volumen de datos serializado por ronda crece con $P$, por lo que $T_o$ incorpora un término proporcional a $P$ que cancela la amortización. Es el mismo fenómeno de tarea de tamaño excesivo descrito en §6.3: Gisette opera en un régimen \textit{communication-bound}, donde el cuello de botella es el transporte de datos y no el cómputo, y su eficiencia ($\leq 0.23$) es la más baja de los tres datasets en todo el rango de $P$.
+
+### 6.6 Interpretación global
 
 Ningún dataset alcanza la eficiencia ideal de $100\%$ (speed-up lineal). Esto es esperado en el entorno `local[*]` de una sola máquina por tres razones: (1) ausencia de overhead real de red, que favorece la ejecución en serie en entorno local; (2) overhead de la JVM de Spark (scheduling, serialización, colección); (3) evaluaciones de fitness rápidas (ms–s) en comparación con clasificadores más costosos que justificarían mayor paralelismo.
 
 La ley de Amdahl proporciona el marco teórico: si la fracción paralela es $f$ (evaluación de fitness) y la secuencial es $1-f$ (operadores genéticos en el Driver), el speed-up máximo teórico es $1/(1-f + f/n)$. En los notebooks, el tiempo de los operadores es $t_{\text{ops}} \approx 0.001$ s/generación frente a $t_{\text{eval}} \approx 0.08$–$2.1$ s/generación, por lo que $f > 0.98$ y el límite teórico a 8 cores sería ~$7.7\times$. La brecha entre el límite teórico y el observado (~$2\times$) se atribuye íntegramente al overhead de Spark, y se reduciría en un cluster real con evaluaciones de mayor coste computacional (datasets más grandes, clasificadores más costosos).
+
+Las dos perspectivas convergen en una misma conclusión y se refuerzan mutuamente. El escalado fuerte (§6.3) revela que el speed-up satura pronto —entre 2 y 4 particiones— porque, con carga fija, añadir particiones más allá del punto en que cada tarea aporta trabajo suficiente solo añade overhead (granularidad excesiva). El escalado débil (§6.5) muestra la cara complementaria: con particiones fijas, **aumentar la carga útil sí incrementa el speed-up** —de $\sim$1.7–2.1$\times$ a $\sim$4$\times$ en WDBC y Arrhythmia—, porque diluye el coste fijo $T_o$. Ambos resultados indican que el factor limitante en `local[*]` no es el grado de paralelismo sino la **relación cómputo/comunicación por tarea**: la paralelización con Spark RDD rinde cuando el trabajo por partición domina sobre su overhead de transporte. Esto explica por qué Gisette, pese a ser el dataset más costoso, obtiene el peor speed-up (su gran dimensionalidad lo desplaza al régimen \textit{communication-bound}) y predice que el rendimiento mejoraría sustancialmente en un cluster con evaluaciones más caras por individuo —p.\,ej., validación cruzada con más pliegues o clasificadores más costosos— donde $\tau$ crece sin que lo haga el volumen de datos transferido.
 
 ---
 
@@ -589,13 +638,15 @@ Las columnas Jaccard y Kuncheva corresponden al estudio de estabilidad con $R=10
 \texttt{estabilidad\_por\_semilla.csv} & Accuracy, fitness y $|S^*|$ por (dataset, semilla) — $3 \times 10 = 30$ filas \\
 \texttt{estabilidad\_resumen.csv} & Media, std, Jaccard, Kuncheva, núcleo por dataset \\
 \texttt{validacion\_linearsvc.csv} & GNB vs.\ LinearSVC en test held-out \\
-\texttt{wdbc/arrhythmia/gisette\_speedup.csv} & Speed-up y eficiencia por número de particiones \\
+\texttt{wdbc/arrhythmia/gisette\_speedup.csv} & Speed-up y eficiencia por número de particiones (población fija) \\
+\texttt{wdbc/arrhythmia/gisette\_speedup\_poblacion.csv} & Speed-up y eficiencia por tamaño de población $P\in\{50,100,200,500\}$ (particiones fijas) \\
 \texttt{escalabilidad\_algoritmica.csv} & Tabla consolidada: todas las métricas por dataset \\
 \texttt{*\_diversidad.png} & Curvas de diversidad y dispersión fenotípica por dataset \\
 \texttt{diversidad\_comparativa.png} & Comparativa del decaimiento de Hamming normalizado \\
 \texttt{estabilidad\_frecuencias.png} & Histogramas de frecuencia de selección por dataset \\
 \texttt{estabilidad\_resumen.png} & Barras con media ± std de accuracy, fitness y $|S^*|$ \\
 \texttt{speedup\_comparativo.png} & Speed-up y eficiencia vs.\ número de particiones \\
+\texttt{speedup\_poblacion\_comparativo.png} & Speed-up y tiempos serie/Spark vs.\ tamaño de población \\
 \hline
 \end{tabular}
 }
@@ -611,7 +662,7 @@ Las columnas Jaccard y Kuncheva corresponden al estudio de estabilidad con $R=10
 
 2. **Holdout no estratificado en Arrhythmia:** la función `split_holdout()` cae al split no estratificado cuando las clases más raras (2–5 muestras) impiden la estratificación, lo que puede producir splits donde algunas clases quedan fuera del conjunto de entrenamiento. Este es el factor principal que explica la disparidad entre el fitness de CV en entrenamiento y la accuracy en test para ciertas semillas.
 
-3. **Speed-up limitado en entorno local:** el speed-up observado (máx. $2.32\times$ en Arrhythmia, 8 cores) refleja el overhead de Spark en `local[*]`. En un cluster real con evaluaciones de mayor coste el speed-up sería sustancialmente mayor.
+3. **Speed-up limitado en entorno local:** el speed-up por número de particiones (máx. $2.32\times$ en Arrhythmia, 8 cores) refleja el overhead de Spark en `local[*]`. No obstante, el estudio por tamaño de población (§6.4–6.5) demuestra que este límite no es intrínseco al grado de paralelismo sino a la carga por tarea: con $P=500$ el speed-up sube a $\sim$4$\times$ en WDBC y Arrhythmia por amortización del overhead fijo. En un cluster real con evaluaciones de mayor coste por individuo el speed-up sería sustancialmente mayor; Gisette, por su parte, requeriría reducir el coste de comunicación (formato columnar, particionado de datos) para salir de su régimen \textit{communication-bound}.
 
 4. **Núcleo de Gisette vacío:** la ausencia de características con frecuencia $\geq 0.8$ en Gisette impide identificar un conjunto de variables interpretable como "relevantes". Esto es una propiedad del dataset (alta redundancia), no del algoritmo.
 
@@ -668,6 +719,7 @@ Con el estudio experimental completo, el mes 5 se dedicará a la redacción de l
 \textbf{[R3]} & \texttt{estabilidad\_resumen.csv} & Media ± std + índices de estabilidad por dataset \\
 \textbf{[R4]} & \texttt{validacion\_linearsvc.csv} & GNB vs.\ LinearSVC en test held-out \\
 \textbf{[R5]} & \texttt{*\_speedup.csv} & Speed-up y eficiencia por número de particiones (3 datasets) \\
+\textbf{[R6]} & \texttt{*\_speedup\_poblacion.csv} & Speed-up y eficiencia por tamaño de población (3 datasets) \\
 \hline
 \end{tabular}
 }
@@ -680,10 +732,12 @@ Con el estudio experimental completo, el mes 5 se dedicará a la redacción de l
 \begin{tabular}{|p{14cm}|}
 \hline
 Aalaei, S., Shahraki, H., Rowhanimanesh, A., \& Eslami, S. (2016). Feature selection using genetic algorithm for breast cancer diagnosis. \textit{Journal of AI and Data Mining}, 4(2), 185--194. \\
+Amdahl, G. M. (1967). Validity of the single processor approach to achieving large scale computing capabilities. \textit{AFIPS Conference Proceedings}, 30, 483--485. \\
 Ambroise, C., \& McLachlan, G. J. (2002). Selection bias in gene extraction on the basis of microarray gene-expression data. \textit{PNAS}, 99(10), 6562--6566. \\
 Guyon, I., \& Elisseeff, A. (2003). An introduction to variable and feature selection. \textit{Journal of Machine Learning Research}, 3, 1157--1182. \\
 Guyon, I., Gunn, S., Ben-Hur, A., \& Dror, G. (2004). Result analysis of the NIPS 2003 feature selection challenge. \textit{Advances in Neural Information Processing Systems}, 17. \\
 Guvenir, H. A., Acar, B., Demiroz, G., \& Cekin, A. (1997). A supervised machine learning algorithm for arrhythmia analysis. \textit{Computers in Cardiology}, 24, 433--436. \\
+Gustafson, J. L. (1988). Reevaluating Amdahl's law. \textit{Communications of the ACM}, 31(5), 532--533. \\
 Huang, C., Davis, L. S., \& Townshend, J. R. G. (2020). An assessment of support vector machines for land cover classification. \textit{International Journal of Remote Sensing} [citado para el contexto de GNB en GA-wrapper]. \\
 Kohavi, R., \& John, G. H. (1997). Wrappers for feature subset selection. \textit{Artificial Intelligence}, 97(1--2), 273--324. \\
 Kuncheva, L. I. (2007). A stability index for feature selection. \textit{Proc. 25th IASTED Int. Conf. on Artificial Intelligence and Applications}, 421--427. \\
