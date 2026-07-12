@@ -185,7 +185,7 @@ All experiments use fixed seeds (`numpy = 42`, `random = 42`), pinned dependenci
 
 ## About / Academic context
 
-This project is the **Master's Thesis (TFM)** of **Fran Mateos** for a Máster en Data Science.
+This project is the **Trabajo Final de Máster (TFM)** of **Francisco Mateos** for a Máster en Ingeniería de Software.
 
 Main contributions:
 
