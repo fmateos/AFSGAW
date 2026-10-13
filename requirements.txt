@@ -1,4 +1,4 @@
-pyspark==3.5.0
+pyspark==3.5.8
 findspark==2.0.1
 pandas==2.0.3
 numpy==1.24.3
